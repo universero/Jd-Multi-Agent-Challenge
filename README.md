@@ -15,15 +15,6 @@ Jd-Multi-Agent-Challenge/
 │   ├── desensitize_data/          # 数据脱敏脚本
 │   └── submit_example.jsonl       # 提交示例文件
 │
-├── src/                           # 主程序与智能体实现
-│   ├── agents/                    # 智能体定义与逻辑
-│   ├── envs/                      # 环境定义与交互接口
-│   ├── strategies/                # 策略与调度逻辑
-│   └── utils/                     # 工具与通用模块
-│
-├── configs/                       # 配置文件目录（模型参数、超参等）
-│   └── default.yaml
-│
 ├── experiments/                   # 实验脚本与结果保存
 │   ├── logs/
 │   └── checkpoints/
