@@ -38,47 +38,47 @@ class Task:
     @staticmethod
     def load_from_file(path: str) -> List["Task"]:
         """
-        从 JSON 文件加载任务列表
-        支持文件内容为:
-        1. [ {...}, {...} ] 任务列表
-        2. {...} 单个任务
+        从 JSONL 文件加载任务列表。
+        每行一个合法的 JSON 对象，对应一个 Task。
         """
+        tasks = []
         with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        if isinstance(data, list):
-            return [Task.from_dict(item) for item in data]
-        elif isinstance(data, dict):
-            return [Task.from_dict(data)]
-        else:
-            raise ValueError("JSON 文件格式错误，必须是对象或数组。")
-
-    @staticmethod
-    def save_to_file(tasks: List["Task"], path: str, indent: int = 2):
-        """将任务列表保存为 JSON 文件"""
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump([t.to_dict() for t in tasks], f, ensure_ascii=False, indent=indent)
+            for line_num, line in enumerate(f, start=1):
+                line = line.strip()
+                if not line:
+                    continue  # 跳过空行
+                try:
+                    data = json.loads(line)
+                    tasks.append(Task.from_dict(data))
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"第 {line_num} 行 JSON 解析失败: {e}")
+        return tasks
 
     @staticmethod
-    def gen_submit(tasks: List["Task"], path: str, indent: int = 2):
+    def save_to_file(tasks: List["Task"], path: str):
         """
-        生成提交文件，只保留 task_id 和 answer 字段。
-        输出格式:
-        [
-          {"task_id": "...", "answer": "..."},
-          {"task_id": "...", "answer": "..."}
-        ]
+        将任务列表保存为 JSONL 文件（每行一个任务对象）
         """
-        submit_data = []
-        for t in tasks:
-            if not t.task_id:
-                raise ValueError("任务缺少 task_id，无法生成提交文件。")
-            if t.answer is None:
-                raise ValueError(f"任务 {t.task_id} 缺少 answer 字段。")
-            submit_data.append({"task_id": t.task_id, "answer": t.answer})
-
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(submit_data, f, ensure_ascii=False, indent=indent)
+            for t in tasks:
+                f.write(json.dumps(t.to_dict(), ensure_ascii=False) + "\n")
+
+    @staticmethod
+    def gen_submit(tasks: List["Task"], path: str):
+        """
+        生成提交文件（JSONL格式），只保留 task_id 和 answer 字段。
+        每行一个结果：
+        {"task_id": "...", "answer": "..."}
+        """
+        with open(path, "w", encoding="utf-8") as f:
+            for t in tasks:
+                if not getattr(t, "task_id", None):
+                    raise ValueError("任务缺少 task_id，无法生成提交文件。")
+                if getattr(t, "answer", None) is None:
+                    raise ValueError(f"任务 {t.task_id} 缺少 answer 字段。")
+
+                line = {"task_id": t.task_id, "answer": t.answer}
+                f.write(json.dumps(line, ensure_ascii=False) + "\n")
 
     def __repr__(self):
         return (
