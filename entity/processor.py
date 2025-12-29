@@ -64,7 +64,7 @@ class Processor:
                 # 注册执行者 Act
                 act = Act(step=step)
                 mas.add_oxy(act)
-                results.append(await act.run())
+                results.append(await act.act(mas, step))
             # 感觉这里可以尝试使用下提供的web界面
             mas.start_web_service(first_query=self.task.query)
             return await self.summarize(self.task, targets, steps, results)
