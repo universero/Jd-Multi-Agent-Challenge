@@ -6,8 +6,9 @@ from typing import List, Optional, Union
 @dataclass
 class Step:
     """
-    一个执行目标
+    执行步骤
     """
-    type: str  # 类型
-    action: str | None  # 行为
-    tools: List[str] | None  # 工具
+    callee: str  # 执行者
+    prompts: str  # 提示词
+    tools: List[str]  # 工具列表
+    steps: List[str]  # 执行步骤
