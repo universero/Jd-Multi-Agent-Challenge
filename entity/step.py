@@ -11,4 +11,4 @@ class Step:
     callee: str  # 执行者
     prompts: str  # 提示词
     tools: List[str]  # 工具列表
-    steps: List[str]  # 执行步骤
+    actions: List[str]  # 执行步骤

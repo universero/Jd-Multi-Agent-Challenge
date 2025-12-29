@@ -19,15 +19,15 @@ class Refine(oxy.ChatAgent):
         kwargs["prompt"] = REFINE_PROMPT
         super().__init__(**kwargs)
 
-    async def refine(self, mas: MAS, target: Target) -> Step:
+    async def refine(self, mas: MAS, target: Target) -> List[Step]:
         result = await mas.call(
             callee=self.name,
             arguments={"query": target.target},
         )
         # 处理result
-        return Step(
+        return [Step(
             callee=self.name,
             prompts=result.output,
             tools=[],
-            steps=[],
-        )
+            actions=[],
+        )]
