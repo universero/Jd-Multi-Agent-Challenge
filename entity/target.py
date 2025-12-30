@@ -8,6 +8,7 @@ class Target:
     """
     一个执行目标
     """
+    query: str  # 原始提问
     target: str  # 基本目标
     requirement: str | None  # 特殊要求
     sequence: int | None  # 执行序号

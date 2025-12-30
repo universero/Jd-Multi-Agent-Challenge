@@ -2,6 +2,9 @@ import json
 from dataclasses import dataclass, asdict
 from typing import List, Optional, Union
 
+from entity.step import Step
+from entity.target import Target
+
 LEVEL_BASIC = "1"  # 基础任务
 LEVEL_ADVANCED = "2"  # 进阶任务
 LEVEL_COMPLEX = "3"  # 复杂任务
@@ -18,6 +21,8 @@ class Task:
     file_name: Optional[str] = None  # 可选，关联文件名
     answer: Optional[str] = None  # 验证集答案（非所有任务都有）
     steps: Optional[str] = None  # 预估完成步骤（验证集专用）
+    targets: Optional[List[Target]] = None
+    refine_steps: Optional[List[Step]] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "Task":
