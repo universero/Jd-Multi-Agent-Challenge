@@ -24,7 +24,7 @@ async def process_tasks():
 if __name__ == "__main__":
     # 设置实验名称, 实验产生的中间产物会以这个为前缀以供后续脱敏
     Config.set_app_name("exp_1_v1")
-    Config.set("LLM_API_KEY", "sk-b1423fb8e0af4be0be479e90e46471c1")
+    Config.set("LLM_API_KEY", os.getenv("DEFAULT_LLM_API_KEY"))
     Config.set("LLM_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
     # Config.set("LLM_MODEL_NAME", "qwen3-max")
     Config.set("LLM_MODEL_NAME", "deepseek-v3.2")
