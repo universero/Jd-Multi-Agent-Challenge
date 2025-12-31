@@ -25,6 +25,10 @@ class Processor:
         self.refine = Refine(
             name=REFINE_AGENT,
         )
+        self.act = Act(
+            name=ACT_AGENT,
+        )
+        
         self.oxy_space = [
             oxy.HttpLLM(
                 name="default_llm",
@@ -34,6 +38,7 @@ class Processor:
             ),
             self.planning,
             self.refine,
+            self.act,
         ]
 
     async def process(self) -> Task:
@@ -57,11 +62,13 @@ class Processor:
             for target in targets:
                 step = await self.refine.refine(mas, target)
                 steps.extend(step)
-                for s in step:
-                    # 注册执行者 Act
-                    act = Act(step=s)
-                    mas.add_oxy(act)
-                    # results.append(await act.act(mas, s))
+            
+            # 执行所有步骤，传递之前的结果给下一个步骤
+            for i, s in enumerate(steps):
+                # 执行步骤并传递之前的结果
+                result = await self.act.act(mas, s, results)
+                results.append(result)
+            
             # 感觉这里可以尝试使用下提供的web界面
             # mas.start_web_service(first_query=self.task.query)
             return await self.summarize(self.task, targets, steps, results)
