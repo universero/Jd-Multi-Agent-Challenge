@@ -7,23 +7,19 @@ from entity.step import Step
 from entity.cst import *
 from util import util
 
-"""
-输入: Target
-输出: List[Step]
-将Planning规划阶段得到的初步目标精化为具体的可执行步骤
-"""
-
 REFINE_PROMPT = """
 你是一个多智能体执行系统中的 **Refine Agent（任务细化代理）**。
 你的任务是：
 **给定一个高层执行目标（Target），将其分解为一组具体、可执行的步骤（Steps）。**
 每一个 Step **必须能够由单一的、具备明确职责的专用智能体直接执行**。
+不能在执行步骤中给出过于具体分析, 更不能随意的得出结论导致后续环节错误 
 
 <输入说明>
 你将接收到：
 - query: ${query} (原始问题, 可以参考, 但要聚焦当前目标)
 - target：${target} (需要完成的高层目标)
 - requirement：${requirement} (额外的约束条件或特殊要求)
+
 <输出要求>
 你**必须且只能**输出一个 **JSON 对象**，不得包含任何其他内容。
 JSON 的格式必须**严格遵循**以下 schema：
@@ -48,6 +44,7 @@ JSON 的格式必须**严格遵循**以下 schema：
 - 每个步骤应在逻辑上相对独立，并且可以按顺序执行。
 - 避免过度细粒度拆分；每个步骤应代表一个有意义的任务单元。
 - 对于简单的思考过程可以直接一个步骤, 指导思考过程即可
+- 生成过程中不应该直接思考更不能直接得出结论, 只需要指导思考过程
 
 2. 智能体选择（callee）
 - 为每个步骤指定一个清晰、具有描述性的智能体名称, 需要和执行的任务相关, 不能是宽泛的search_agent之类的。
@@ -63,6 +60,17 @@ JSON 的格式必须**严格遵循**以下 schema：
 - 仅在该步骤确实需要时才包含工具。
 - 如果不需要任何工具，返回空数组 []。
 - 工具名称必须是明确且可执行的。
+- 可用工具有[
+    "math_tools",
+    "file_tools",
+    "time_tools",
+    "http_tools",
+    "string_tools",
+    "system_tools",
+    "shell_tools",
+    "python_tools",
+    "image_gen_tools",
+]
 
 5. 行动列表（actions）
 - actions 必须是一个自然语言指令列表。
@@ -90,11 +98,35 @@ JSON 的格式必须**严格遵循**以下 schema：
 
 
 class Refine(oxy.ChatAgent):
+    """
+    任务细化代理（Refine Agent）
+    
+    将Planning规划阶段得到的初步目标精化为具体的可执行步骤
+    
+    输入: Target
+    输出: List[Step]
+    """
+
     def __init__(self, **kwargs):
+        # 定义细化代理的提示词
         kwargs["prompt"] = REFINE_PROMPT
         super().__init__(**kwargs)
 
     async def refine(self, mas: MAS, target: Target) -> List[Step]:
+        """
+        将高层目标细化为具体可执行的步骤
+
+        Args:
+            mas: 多智能体系统
+            target: 需要细化的目标
+
+        Returns:
+            List[Step]: 细化后的步骤列表
+
+        Raises:
+            ValueError: 当模型输出不是有效JSON或步骤为空时
+        """
+        # 调用细化代理获取步骤
         result = await mas.call(
             callee=self.name,
             arguments={
@@ -103,6 +135,7 @@ class Refine(oxy.ChatAgent):
                 "requirement": target.requirement or "无",
             },
         )
+
         # 解析模型输出
         try:
             payload = json.loads(util.purify_json(result))
@@ -110,11 +143,12 @@ class Refine(oxy.ChatAgent):
             raise ValueError(
                 f"Refine agent output is not valid JSON: {result}"
             ) from e
+
         raw_steps = payload.get("steps", [])
         if not raw_steps:
             raise ValueError("Refine agent returned empty steps")
 
-        # 处理result
+        # 处理结果，转换为Step对象
         steps: List[Step] = []
         for idx, raw in enumerate(raw_steps):
             callee = raw.get("callee")
@@ -126,13 +160,13 @@ class Refine(oxy.ChatAgent):
                 raise ValueError(
                     f"Invalid step definition at index {idx}: {raw}"
                 )
-            steps.append(
-                Step(
-                    callee=callee,
-                    prompts=prompt,
-                    tools=tools,
-                    actions=actions,
-                )
+
+            step = Step(
+                callee=callee,
+                prompts=prompt,
+                tools=tools,
+                actions=actions,
             )
+            steps.append(step)
 
         return steps

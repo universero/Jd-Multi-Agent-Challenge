@@ -10,8 +10,9 @@ from util import util
 PLANNING_PROMPT = """
 你是一个**任务规划专家（Planning Agent）**。
 你的职责是：  
-根据用户提供的任务信息，对 **用户的 query 进行规划级拆解**，将其拆分为若干个**可执行的中间目标（Target）**，并明确这些目标之间的**执行顺序与并行关系**。  
+根据用户提供的任务信息，对 **用户的 query 进行规划级拆解**，将其拆分为少量**可执行的中间目标（Target）**，并明确这些目标之间的**执行顺序与并行关系**。  
 该过程属于 **planning 阶段**，不需要执行任务本身，只负责目标拆分与结构化规划。
+目标应该尽可能具体并贴合问题, 不要提出形式上没有意义的目标, 需要切实的指导任务
 <任务输入>
 你将接收到以下信息：
 - 问题描述（query）：${query}  
@@ -52,10 +53,18 @@ PLANNING_PROMPT = """
 - 不要使用 Markdown  
 
 <输出示例>
+level1示例: 100桶水中混有1桶剧毒（饮用后24小时发作无解药），用实验兔检测（每兔可饮多桶，每桶可被多兔饮用），目标：在48小时内用最少的兔子找出毒桶，约束：无法区分中毒先后，且第二次实验需等待24小时，问最少需要几只兔子？
+[
+  {
+    "target": "思考题, 使用2进制思想, 根据要求思考并得出答案",
+    "requirement": "仅输出数字"
+    "sequence": 1
+  }
+]
 level1示例: 你雇人工作7天，手上仅有一根金条并且需每日支付1/7根金条作为报酬。问最少将金条切成多少段，使得每天能支付当日工资？仅输出数字
 [
   {
-    "target": "根据题目要求思考并得出答案",
+    "target": "思考题, 根据题目要求思考并得出答案",
     "requirement": "仅输出数字"
     "sequence": 1
   }
@@ -93,11 +102,31 @@ level3示例: 截至2024年，有一位人物2014年在南京打破某一项世�
 
 
 class Planning(oxy.ChatAgent):
+    """
+    任务规划代理类，用于将用户任务分解为可执行的中间目标
+    """
     def __init__(self, **kwargs):
+        """
+        初始化规划代理
+        """
         kwargs["prompt"] = PLANNING_PROMPT
         super().__init__(**kwargs)
 
     async def plan(self, mas: MAS, task: Task) -> List[Target]:
+        """
+        根据任务信息进行规划，将其分解为多个可执行的目标
+        
+        Args:
+            mas: 多代理系统实例
+            task: 需要规划的任务
+            
+        Returns:
+            List[Target]: 分解后的目标列表
+            
+        Raises:
+            Exception: 当解析规划结果失败时抛出异常
+        """
+        # 调用MAS系统进行任务规划
         result = await mas.call(
             callee=self.name,
             arguments={
@@ -107,17 +136,20 @@ class Planning(oxy.ChatAgent):
             },
         )
 
-        # 解析返回结果
+        # 解析并构建目标列表
         try:
+            # 清理并解析JSON结果
             targets_data = json.loads(util.purify_json(result))
             targets = []
             for target_data in targets_data:
-                targets.append(Target(
+                target = Target(
                     query=task.query,
                     target=target_data.get("target", ""),
                     requirement=target_data.get("requirement", None),
                     sequence=target_data.get("sequence", None),
-                ))
+                )
+                targets.append(target)
             return targets
         except Exception as e:
+            # 重新抛出异常，保留原始错误信息
             raise e

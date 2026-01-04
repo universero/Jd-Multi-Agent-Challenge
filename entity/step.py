@@ -1,12 +1,17 @@
-import json
-from dataclasses import dataclass, asdict
-from typing import List, Optional, Union
+from dataclasses import dataclass
+from typing import List
 
 
 @dataclass
 class Step:
     """
     执行步骤
+    
+    Attributes:
+        callee: 执行者
+        prompts: 提示词
+        tools: 工具列表
+        actions: 执行步骤
     """
     callee: str  # 执行者
     prompts: str  # 提示词

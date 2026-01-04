@@ -1,14 +1,19 @@
-import json
-from dataclasses import dataclass, asdict
-from typing import List, Optional, Union
+from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
 class Target:
     """
-    一个执行目标
+    表示一个执行目标的数据类
+    
+    Attributes:
+        query (str): 原始提问内容
+        target (str): 基本目标内容
+        requirement (Optional[str]): 特殊要求，默认为 None
+        sequence (Optional[int]): 执行序号，默认为 None
     """
-    query: str  # 原始提问
-    target: str  # 基本目标
-    requirement: str | None  # 特殊要求
-    sequence: int | None  # 执行序号
+    query: str
+    target: str
+    requirement: Optional[str] = None
+    sequence: Optional[int] = None
